@@ -56,22 +56,48 @@ function onAuthSuccess(token) {
 }
 
 // 复制安装命令
-function copyInstruction() {
+function copyInstruction(btn) {
     const command = document.getElementById('install-command').textContent;
+    btn = btn || document.querySelector('.copy-button');
 
-    navigator.clipboard.writeText(command).then(() => {
-        const btn = event.target;
+    const showCopied = () => {
+        if (!btn) return;
         const originalText = btn.textContent;
         btn.textContent = '✓ 已复制！';
         btn.style.backgroundColor = '#10b981';
-
         setTimeout(() => {
             btn.textContent = originalText;
             btn.style.backgroundColor = '';
         }, 2000);
-    }).catch(err => {
-        alert('复制失败，请手动复制');
-    });
+    };
+
+    // 回退方案：用临时 textarea + execCommand
+    const fallbackCopy = () => {
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = command;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            const ok = document.execCommand('copy');
+            document.body.removeChild(ta);
+            if (ok) {
+                showCopied();
+            } else {
+                alert('复制失败，请手动选择命令文本复制');
+            }
+        } catch (e) {
+            alert('复制失败，请手动选择命令文本复制');
+        }
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(command).then(showCopied).catch(fallbackCopy);
+    } else {
+        fallbackCopy();
+    }
 }
 
 // 页面加载时检查是否已登录
