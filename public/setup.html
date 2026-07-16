@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>开始使用 - SyncAgent</title>
     <link rel="stylesheet" href="/styles/main.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
     <div class="container">
@@ -24,18 +25,23 @@
                 </div>
                 
                 <div class="auth-form">
-                    <div id="email-form">
-                        <input type="email" id="email" placeholder="你的邮箱" class="input-field">
-                        <button onclick="sendCode()" class="button" id="send-code-btn">发送验证码</button>
-                    </div>
-
-                    <div id="code-form" style="display: none;">
-                        <input type="text" id="code" placeholder="验证码（6位数字）" class="input-field" maxlength="6">
-                        <button onclick="verifyCode()" class="button" id="verify-btn">验证</button>
+                    <div id="google-form">
+                        <p class="hint">使用 Google 账号一键登录，无需密码。</p>
+                        <div id="g_id_onload"
+                             data-client_id="YOUR_GOOGLE_CLIENT_ID"
+                             data-callback="handleGoogleLogin"
+                             data-auto_prompt="false"></div>
+                        <div class="g_id_signin"
+                             data-type="standard"
+                             data-size="large"
+                             data-theme="outline"
+                             data-text="signin_with"
+                             data-shape="rectangular"
+                             data-logo_alignment="left"></div>
                     </div>
 
                     <div id="auth-success" style="display: none;">
-                        <p class="success-message">✓ 注册成功！</p>
+                        <p class="success-message">✓ 登录成功！</p>
                         <p class="token-display">你的 Token：<code id="user-token"></code></p>
                     </div>
                 </div>

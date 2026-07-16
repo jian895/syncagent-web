@@ -1,109 +1,70 @@
 // API 端点（开发时用本地，部署后自动切换）
-const API_BASE = window.location.hostname === 'localhost' 
+const API_BASE = window.location.hostname === 'localhost'
     ? 'http://localhost:8000'
     : 'https://web-production-1fa7e.up.railway.app';
 
-// 发送验证码
-async function sendCode() {
-    const email = document.getElementById('email').value;
-    const btn = document.getElementById('send-code-btn');
-    
-    if (!email || !email.includes('@')) {
-        alert('请输入有效的邮箱地址');
+// Google 登录回调（由 Google Identity Services 调用）
+async function handleGoogleLogin(response) {
+    // response.credential 是 Google 返回的 ID token (JWT)
+    const credential = response.credential;
+
+    if (!credential) {
+        alert('Google 登录失败：未获取到凭证');
         return;
     }
-    
-    btn.disabled = true;
-    btn.textContent = '发送中...';
-    
+
     try {
-        const response = await fetch(`${API_BASE}/auth/register`, {
+        const res = await fetch(`${API_BASE}/auth/google`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ email })
+            body: JSON.stringify({ credential })
         });
-        
-        if (!response.ok) {
-            throw new Error('发送失败');
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.detail || '登录失败');
         }
-        
-        // 显示验证码输入框
-        document.getElementById('email-form').style.display = 'none';
-        document.getElementById('code-form').style.display = 'flex';
-        
-        alert('验证码已发送到你的邮箱！');
+
+        const data = await res.json();
+        onAuthSuccess(data.token);
     } catch (error) {
-        alert('发送失败：' + error.message);
-        btn.disabled = false;
-        btn.textContent = '发送验证码';
+        alert('登录失败：' + error.message);
     }
 }
 
-// 验证验证码
-async function verifyCode() {
-    const email = document.getElementById('email').value;
-    const code = document.getElementById('code').value;
-    const btn = document.getElementById('verify-btn');
-    
-    if (!code || code.length !== 6) {
-        alert('请输入6位验证码');
-        return;
-    }
-    
-    btn.disabled = true;
-    btn.textContent = '验证中...';
-    
-    try {
-        const response = await fetch(`${API_BASE}/auth/verify`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ email, code })
-        });
-        
-        if (!response.ok) {
-            throw new Error('验证失败，请检查验证码');
-        }
-        
-        const data = await response.json();
-        const token = data.token;
-        
-        // 保存 token 到 localStorage
-        localStorage.setItem('syncagent_token', token);
-        
-        // 显示成功信息
-        document.getElementById('code-form').style.display = 'none';
-        document.getElementById('auth-success').style.display = 'block';
-        document.getElementById('user-token').textContent = token;
-        
-        // 显示安装步骤
-        document.getElementById('step-install').style.display = 'block';
-        document.getElementById('step-usage').style.display = 'block';
-        
-        // 填充 token 到安装命令
-        document.getElementById('token-placeholder').textContent = token;
-        document.getElementById('token-placeholder').style.color = '#3b82f6';
-        
-    } catch (error) {
-        alert(error.message);
-        btn.disabled = false;
-        btn.textContent = '验证';
-    }
+// 登录成功后的通用处理
+function onAuthSuccess(token) {
+    // 保存 token 到 localStorage
+    localStorage.setItem('syncagent_token', token);
+
+    // 隐藏登录表单，显示成功信息
+    const googleForm = document.getElementById('google-form');
+    if (googleForm) googleForm.style.display = 'none';
+    document.getElementById('auth-success').style.display = 'block';
+    document.getElementById('user-token').textContent = token;
+
+    // 显示后续步骤
+    document.getElementById('step-install').style.display = 'block';
+    document.getElementById('step-usage').style.display = 'block';
+
+    // 填充 token 到安装命令
+    const placeholder = document.getElementById('token-placeholder');
+    placeholder.textContent = token;
+    placeholder.style.color = '#3b82f6';
 }
 
 // 复制安装命令
 function copyInstruction() {
     const command = document.getElementById('install-command').textContent;
-    
+
     navigator.clipboard.writeText(command).then(() => {
         const btn = event.target;
         const originalText = btn.textContent;
         btn.textContent = '✓ 已复制！';
         btn.style.backgroundColor = '#10b981';
-        
+
         setTimeout(() => {
             btn.textContent = originalText;
             btn.style.backgroundColor = '';
@@ -113,18 +74,12 @@ function copyInstruction() {
     });
 }
 
-// 页面加载时检查是否已有 token
+// 页面加载时检查是否已登录
 window.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('syncagent_token');
-    
+
     if (token && document.getElementById('step-install')) {
-        // 如果已有 token，直接显示安装步骤
         document.getElementById('step-auth').style.display = 'none';
-        document.getElementById('auth-success').style.display = 'block';
-        document.getElementById('user-token').textContent = token;
-        document.getElementById('step-install').style.display = 'block';
-        document.getElementById('step-usage').style.display = 'block';
-        document.getElementById('token-placeholder').textContent = token;
-        document.getElementById('token-placeholder').style.color = '#3b82f6';
+        onAuthSuccess(token);
     }
 });
