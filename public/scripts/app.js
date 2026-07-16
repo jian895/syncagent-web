@@ -39,20 +39,31 @@ function onAuthSuccess(token) {
     // 保存 token 到 localStorage
     localStorage.setItem('syncagent_token', token);
 
-    // 隐藏登录表单，显示成功信息
+    // 刷新顶部登录状态导航
+    renderAuthNav();
+
+    // 以下仅 setup 页存在，别的页面容错跳过
     const googleForm = document.getElementById('google-form');
     if (googleForm) googleForm.style.display = 'none';
-    document.getElementById('auth-success').style.display = 'block';
-    document.getElementById('user-token').textContent = token;
 
-    // 显示后续步骤
-    document.getElementById('step-install').style.display = 'block';
-    document.getElementById('step-usage').style.display = 'block';
+    const success = document.getElementById('auth-success');
+    if (success) success.style.display = 'block';
+
+    const userToken = document.getElementById('user-token');
+    if (userToken) userToken.textContent = token;
+
+    const stepInstall = document.getElementById('step-install');
+    if (stepInstall) stepInstall.style.display = 'block';
+
+    const stepUsage = document.getElementById('step-usage');
+    if (stepUsage) stepUsage.style.display = 'block';
 
     // 填充 token 到安装命令
     const placeholder = document.getElementById('token-placeholder');
-    placeholder.textContent = token;
-    placeholder.style.color = '#3b82f6';
+    if (placeholder) {
+        placeholder.textContent = token;
+        placeholder.style.color = '#3b82f6';
+    }
 }
 
 // 复制安装命令
@@ -100,10 +111,52 @@ function copyInstruction(btn) {
     }
 }
 
-// 页面加载时检查是否已登录
-window.addEventListener('DOMContentLoaded', () => {
+// 退出登录（全站通用）
+function logout() {
+    localStorage.removeItem('syncagent_token');
+    window.location.href = '/index.html';
+}
+
+// 从 JWT 里解出邮箱（仅用于展示，不做校验）
+function emailFromToken(token) {
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+        return payload.email || '';
+    } catch (e) {
+        return '';
+    }
+}
+
+// 渲染统一的顶部登录状态导航（所有页面共用 #nav-actions 容器）
+function renderAuthNav() {
+    const nav = document.getElementById('nav-actions');
+    if (!nav) return;
+
     const token = localStorage.getItem('syncagent_token');
 
+    if (!token) {
+        nav.innerHTML =
+            '<a href="/docs.html" class="nav-btn nav-btn-ghost">文档</a>' +
+            '<a href="/setup.html" class="nav-btn nav-btn-primary">登录 / 开始使用</a>';
+        return;
+    }
+
+    const email = emailFromToken(token);
+    nav.innerHTML =
+        (email ? '<span class="nav-user" title="' + email + '">' + email + '</span>' : '') +
+        '<a href="/backups.html" class="nav-btn">📦 我的备份</a>' +
+        '<a href="/setup.html" class="nav-btn nav-btn-ghost">安装命令</a>' +
+        '<button type="button" class="nav-btn nav-btn-ghost" id="nav-logout">退出</button>';
+
+    const btn = document.getElementById('nav-logout');
+    if (btn) btn.addEventListener('click', logout);
+}
+
+// 页面加载：渲染导航；在 setup 页若已登录直接展示后续步骤
+window.addEventListener('DOMContentLoaded', () => {
+    renderAuthNav();
+
+    const token = localStorage.getItem('syncagent_token');
     if (token && document.getElementById('step-install')) {
         document.getElementById('step-auth').style.display = 'none';
         onAuthSuccess(token);
