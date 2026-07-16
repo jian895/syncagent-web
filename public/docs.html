@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文档 - SyncAgent</title>
+    <link rel="stylesheet" href="/styles/main.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 SyncAgent 文档</h1>
+            <a href="/public/index.html" class="back-link">← 返回首页</a>
+        </header>
+
+        <main class="docs-page">
+            <nav class="docs-nav">
+                <ul>
+                    <li><a href="#quick-start">快速开始</a></li>
+                    <li><a href="#features">功能说明</a></li>
+                    <li><a href="#agents">支持的智能体</a></li>
+                    <li><a href="#faq">常见问题</a></li>
+                </ul>
+            </nav>
+
+            <div class="docs-content">
+                <section id="quick-start">
+                    <h2>快速开始</h2>
+                    
+                    <h3>1. 注册账号</h3>
+                    <p>访问 <a href="/public/setup.html">安装页面</a>，输入邮箱获取验证码，30秒完成注册。</p>
+
+                    <h3>2. 安装 MCP</h3>
+                    <p>复制安装命令，粘贴给你的 AI 助手：</p>
+                    <pre><code>帮我安装这个 MCP 服务器：
+{
+  "syncagent": {
+    "url": "https://api.syncagent.io/mcp",
+    "headers": {
+      "Authorization": "Bearer your_token_here"
+    }
+  }
+}</code></pre>
+
+                    <h3>3. 重启智能体</h3>
+                    <p>重启后，MCP Server 会自动连接并检测配置。</p>
+                </section>
+
+                <section id="features">
+                    <h2>功能说明</h2>
+
+                    <h3>配置备份</h3>
+                    <p>对 AI 说："备份我的配置"</p>
+                    <p>系统会自动备份：</p>
+                    <ul>
+                        <li>MCP 服务器配置</li>
+                        <li>自定义技能（Reasonix Skills）</li>
+                        <li>记忆文件（Memory）</li>
+                        <li>提示词规则（.cursorrules 等）</li>
+                    </ul>
+                    <p><strong>注意：</strong>API Keys 会自动脱敏，不会上传到云端。</p>
+
+                    <h3>配置恢复</h3>
+                    <p>在新设备上安装 MCP 后，对 AI 说："恢复我的配置"</p>
+                    <p>系统会：</p>
+                    <ul>
+                        <li>自动检测当前智能体类型</li>
+                        <li>下载对应的配置</li>
+                        <li>写入到正确的路径</li>
+                        <li>提示需要手动填写的 API Keys</li>
+                    </ul>
+
+                    <h3>跨智能体迁移</h3>
+                    <p>从 Cursor 换到 Claude Desktop？</p>
+                    <ol>
+                        <li>在 Cursor 中备份配置</li>
+                        <li>在 Claude Desktop 中安装 MCP</li>
+                        <li>系统自动检测到配置类型不同</li>
+                        <li>提示"要从 Cursor 迁移吗？"</li>
+                        <li>确认后自动转换格式并写入</li>
+                    </ol>
+                </section>
+
+                <section id="agents">
+                    <h2>支持的智能体</h2>
+
+                    <table class="agents-table">
+                        <thead>
+                            <tr>
+                                <th>智能体</th>
+                                <th>备份</th>
+                                <th>恢复</th>
+                                <th>迁移源</th>
+                                <th>迁移目标</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Reasonix</td>
+                                <td>✅</td>
+                                <td>✅</td>
+                                <td>✅</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>Cursor</td>
+                                <td>✅</td>
+                                <td>✅</td>
+                                <td>✅</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>Claude Desktop</td>
+                                <td>✅</td>
+                                <td>✅</td>
+                                <td>✅</td>
+                                <td>✅</td>
+                            </tr>
+                            <tr>
+                                <td>Windsurf</td>
+                                <td colspan="4" class="coming-soon">即将支持</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <section id="faq">
+                    <h2>常见问题</h2>
+
+                    <div class="faq-item">
+                        <h3>Q: API Keys 会上传到云端吗？</h3>
+                        <p>A: 不会。系统会自动检测并脱敏所有敏感信息（如 <code>*_TOKEN</code>、<code>*_KEY</code>），替换为占位符。恢复时会提示你需要手动填写。</p>
+                    </div>
+
+                    <div class="faq-item">
+                        <h3>Q: 支持多设备自动同步吗？</h3>
+                        <p>A: 当前版本需要手动备份/恢复。自动同步功能在开发中。</p>
+                    </div>
+
+                    <div class="faq-item">
+                        <h3>Q: 配置文件存储在哪里？</h3>
+                        <p>A: 存储在 Cloudflare R2（兼容 S3），数据加密传输和存储，仅你可以访问。</p>
+                    </div>
+
+                    <div class="faq-item">
+                        <h3>Q: 换智能体时，哪些功能可以迁移？</h3>
+                        <p>A: MCP 配置 100% 兼容。提示词和技能会尽量转换，不支持的功能会在迁移报告中说明。</p>
+                    </div>
+
+                    <div class="faq-item">
+                        <h3>Q: 免费版有限制吗？</h3>
+                        <p>A: 当前完全免费，无用户数和存储限制。未来可能推出付费版增加高级功能。</p>
+                    </div>
+
+                    <div class="faq-item">
+                        <h3>Q: 遇到问题怎么办？</h3>
+                        <p>A: 访问 <a href="https://github.com/yourusername/syncagent/issues">GitHub Issues</a> 提交问题，或发邮件到 support@syncagent.io</p>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <footer>
+            <p>© 2024 SyncAgent · <a href="https://github.com/yourusername/syncagent">GitHub</a></p>
+        </footer>
+    </div>
+</body>
+</html>

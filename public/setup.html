@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>开始使用 - SyncAgent</title>
+    <link rel="stylesheet" href="/styles/main.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔄 SyncAgent</h1>
+            <a href="/public/index.html" class="back-link">← 返回首页</a>
+        </header>
+
+        <main class="setup-page">
+            <h2>30秒开始使用</h2>
+
+            <!-- 步骤1：注册账号 -->
+            <section class="setup-step" id="step-auth">
+                <div class="step-header">
+                    <span class="step-number">1</span>
+                    <h3>注册账号</h3>
+                </div>
+                
+                <div class="auth-form">
+                    <div id="email-form">
+                        <input type="email" id="email" placeholder="你的邮箱" class="input-field">
+                        <button onclick="sendCode()" class="button" id="send-code-btn">发送验证码</button>
+                    </div>
+
+                    <div id="code-form" style="display: none;">
+                        <input type="text" id="code" placeholder="验证码（6位数字）" class="input-field" maxlength="6">
+                        <button onclick="verifyCode()" class="button" id="verify-btn">验证</button>
+                    </div>
+
+                    <div id="auth-success" style="display: none;">
+                        <p class="success-message">✓ 注册成功！</p>
+                        <p class="token-display">你的 Token：<code id="user-token"></code></p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 步骤2：复制安装命令 -->
+            <section class="setup-step" id="step-install" style="display: none;">
+                <div class="step-header">
+                    <span class="step-number">2</span>
+                    <h3>复制下面的内容，粘贴给你的 AI 助手</h3>
+                </div>
+
+                <div class="instruction-box">
+                    <pre id="install-command">帮我安装这个 MCP 服务器：
+
+{
+  "syncagent": {
+    "url": "https://api.syncagent.io/mcp",
+    "headers": {
+      "Authorization": "Bearer <span id="token-placeholder">获取 Token 后自动填充</span>"
+    }
+  }
+}</pre>
+                    <button onclick="copyInstruction()" class="copy-button">📋 一键复制</button>
+                </div>
+
+                <div class="hint">
+                    <p><strong>提示：</strong>这条命令适用于所有智能体（Reasonix、Cursor、Claude Desktop 等）</p>
+                </div>
+            </section>
+
+            <!-- 步骤3：使用说明 -->
+            <section class="setup-step" id="step-usage" style="display: none;">
+                <div class="step-header">
+                    <span class="step-number">3</span>
+                    <h3>重启智能体，开始使用</h3>
+                </div>
+
+                <div class="usage-tips">
+                    <h4>常用命令：</h4>
+                    <ul>
+                        <li><code>备份我的配置</code> - 上传配置到云端</li>
+                        <li><code>恢复我的配置</code> - 从云端下载配置</li>
+                        <li><code>查看同步状态</code> - 查看云端备份情况</li>
+                    </ul>
+
+                    <h4>首次使用：</h4>
+                    <p>重启智能体后，MCP Server 会自动检测：</p>
+                    <ul>
+                        <li>如果云端没有配置 → 提示你"要备份当前配置吗？"</li>
+                        <li>如果云端有同类型智能体配置 → 提示你"要恢复吗？"</li>
+                        <li>如果云端有其他智能体配置 → 提示你"要迁移吗？"</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>遇到问题？<a href="/public/docs.html">查看文档</a> 或 <a href="https://github.com/yourusername/syncagent/issues">提交 Issue</a></p>
+        </footer>
+    </div>
+
+    <script src="/scripts/app.js"></script>
+</body>
+</html>
