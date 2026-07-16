@@ -89,6 +89,31 @@
         .toggle-btn:hover {
             background: var(--bg-tertiary);
         }
+        .backup-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+        .delete-btn {
+            padding: 0.6rem 1.25rem;
+            background: #fff;
+            border: 1px solid #fecaca;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #dc2626;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .delete-btn:hover:not(:disabled) {
+            background: #fef2f2;
+            border-color: #dc2626;
+        }
+        .delete-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
         .backup-detail {
             margin-top: 1.5rem;
             border-top: 1px solid var(--border);
@@ -270,7 +295,10 @@
                                 '</div>' +
                                 '<div class="backup-chips">' + chips + '</div>' +
                             '</div>' +
-                            '<button class="toggle-btn">查看内容</button>' +
+                            '<div class="backup-actions">' +
+                                '<button class="toggle-btn">查看内容</button>' +
+                                '<button class="delete-btn">删除</button>' +
+                            '</div>' +
                         '</div>' +
                         '<div class="backup-detail" style="display:none;"></div>' +
                     '</div>'
@@ -284,8 +312,48 @@
             document.querySelectorAll('.backup-card-head').forEach(head => {
                 head.addEventListener('click', () => toggleDetail(head));
             });
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteBackup(btn.closest('.backup-card'));
+                });
+            });
             const lo = document.getElementById('logout');
             if (lo) lo.addEventListener('click', logout);
+        }
+
+        async function deleteBackup(card) {
+            const clientType = card.getAttribute('data-client');
+            const title = (card.querySelector('.backup-title') || {}).textContent || clientType;
+            if (!confirm('确定删除「' + title + '」的云端备份吗？此操作不可恢复。')) return;
+
+            const token = getToken();
+            if (!token) { showLoginPrompt(); return; }
+
+            const delBtn = card.querySelector('.delete-btn');
+            if (delBtn) { delBtn.disabled = true; delBtn.textContent = '删除中…'; }
+
+            let res;
+            try {
+                res = await fetch(`${API_BASE}/api/backups/${encodeURIComponent(clientType)}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+            } catch (e) {
+                if (delBtn) { delBtn.disabled = false; delBtn.textContent = '删除'; }
+                alert('删除失败：无法连接服务器');
+                return;
+            }
+
+            if (res.status === 401) { showLoginPrompt(); return; }
+            if (!res.ok && res.status !== 404) {
+                if (delBtn) { delBtn.disabled = false; delBtn.textContent = '删除'; }
+                alert('删除失败：HTTP ' + res.status);
+                return;
+            }
+
+            // 成功（或该备份已不存在）→ 重新拉列表
+            loadBackups();
         }
 
         async function toggleDetail(head) {
