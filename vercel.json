@@ -2,7 +2,17 @@
   "rewrites": [
     { "source": "/", "destination": "/public/index.html" },
     { "source": "/setup", "destination": "/public/setup.html" },
-    { "source": "/docs", "destination": "/public/docs.html" },
-    { "source": "/(.*)", "destination": "/public/$1" }
+    { "source": "/docs", "destination": "/public/docs.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    }
   ]
 }
