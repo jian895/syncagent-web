@@ -1,6 +1,8 @@
 {
-  "version": 2,
-  "routes": [
-    { "src": "/(.*)", "dest": "/public/$1" }
+  "rewrites": [
+    { "source": "/", "destination": "/public/index.html" },
+    { "source": "/setup", "destination": "/public/setup.html" },
+    { "source": "/docs", "destination": "/public/docs.html" },
+    { "source": "/(.*)", "destination": "/public/$1" }
   ]
 }
