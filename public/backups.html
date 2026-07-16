@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的备份 - SyncAgent</title>
+    <link rel="stylesheet" href="/styles/main.css">
+    <style>
+        .backups-page {
+            max-width: 900px;
+            margin: 3rem auto;
+        }
+        .backups-page h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+        .state-box {
+            padding: 2.5rem;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            text-align: center;
+            color: var(--text-light);
+        }
+        .state-box a {
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .backup-card {
+            margin: 1.25rem 0;
+            padding: 1.75rem 2rem;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            transition: all 0.2s;
+        }
+        .backup-card:hover {
+            border-color: var(--primary-light);
+            box-shadow: var(--shadow-lg);
+        }
+        .backup-card-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            cursor: pointer;
+        }
+        .backup-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .backup-meta {
+            font-size: 0.875rem;
+            color: var(--text-light);
+            margin-top: 0.35rem;
+        }
+        .backup-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+        .chip {
+            padding: 0.25rem 0.75rem;
+            background: var(--bg-tertiary);
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            color: var(--primary);
+            font-weight: 500;
+        }
+        .toggle-btn {
+            padding: 0.6rem 1.25rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--text);
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .toggle-btn:hover {
+            background: var(--bg-tertiary);
+        }
+        .backup-detail {
+            margin-top: 1.5rem;
+            border-top: 1px solid var(--border);
+            padding-top: 1.5rem;
+        }
+        .backup-detail pre {
+            padding: 1.5rem;
+            background: var(--text);
+            color: var(--bg);
+            border-radius: var(--radius);
+            overflow-x: auto;
+            font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+            font-size: 0.8rem;
+            line-height: 1.6;
+            max-height: 480px;
+            overflow-y: auto;
+        }
+        .logout-link {
+            display: inline-block;
+            margin-top: 1rem;
+            color: var(--text-light);
+            font-size: 0.875rem;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .logout-link:hover {
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔄 SyncAgent</h1>
+            <a href="/index.html" class="back-link">← 返回首页</a>
+        </header>
+
+        <main class="backups-page">
+            <h2>我的备份</h2>
+            <div id="content">
+                <div class="state-box">加载中…</div>
+            </div>
+        </main>
+
+        <footer>
+            <p>© 2026 SyncAgent · <a href="/docs.html">文档</a> · <a href="/setup.html">开始使用</a></p>
+        </footer>
+    </div>
+
+    <script>
+        const API_BASE = window.location.hostname === 'localhost'
+            ? 'http://localhost:8000'
+            : 'https://web-production-1fa7e.up.railway.app';
+
+        const content = document.getElementById('content');
+
+        function escapeHtml(s) {
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function fmtTime(iso) {
+            if (!iso) return '未知时间';
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return iso;
+            return d.toLocaleString('zh-CN', { hour12: false });
+        }
+
+        function showLoginPrompt() {
+            content.innerHTML =
+                '<div class="state-box">请先<a href="/setup.html">用 Google 登录</a>，然后回到此页查看你的云端备份。</div>';
+        }
+
+        function showError(msg) {
+            content.innerHTML =
+                '<div class="state-box">加载失败：' + escapeHtml(msg) +
+                '<br><a class="logout-link" id="relogin">重新登录</a></div>';
+            const relogin = document.getElementById('relogin');
+            if (relogin) relogin.addEventListener('click', logout);
+        }
+
+        function logout() {
+            localStorage.removeItem('syncagent_token');
+            window.location.href = '/setup.html';
+        }
+
+        function getToken() {
+            return localStorage.getItem('syncagent_token');
+        }
+
+        async function loadBackups() {
+            const token = getToken();
+            if (!token) {
+                showLoginPrompt();
+                return;
+            }
+
+            let res;
+            try {
+                res = await fetch(`${API_BASE}/api/backups`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+            } catch (e) {
+                showError('无法连接服务器');
+                return;
+            }
+
+            if (res.status === 401) {
+                showLoginPrompt();
+                return;
+            }
+            if (!res.ok) {
+                showError('HTTP ' + res.status);
+                return;
+            }
+
+            const data = await res.json();
+            renderList(data.backups || []);
+        }
+
+        function renderList(backups) {
+            if (!backups.length) {
+                content.innerHTML =
+                    '<div class="state-box">你的云端还没有任何备份。<br>' +
+                    '在你的智能体里说"备份我的配置"即可上传。' +
+                    '<br><a class="logout-link" id="logout">退出登录</a></div>';
+                const lo = document.getElementById('logout');
+                if (lo) lo.addEventListener('click', logout);
+                return;
+            }
+
+            const parts = backups.map((b, i) => {
+                const chips = (b.items || [])
+                    .map(k => '<span class="chip">' + escapeHtml(k) + '</span>')
+                    .join('');
+                return (
+                    '<div class="backup-card" data-client="' + escapeHtml(b.client_type) + '">' +
+                        '<div class="backup-card-head" data-idx="' + i + '">' +
+                            '<div>' +
+                                '<div class="backup-title">' + escapeHtml(b.display_name || b.client_type) + '</div>' +
+                                '<div class="backup-meta">' + escapeHtml(b.client_type) +
+                                    ' · ' + (b.item_count || 0) + ' 项 · 更新于 ' + escapeHtml(fmtTime(b.synced_at)) +
+                                '</div>' +
+                                '<div class="backup-chips">' + chips + '</div>' +
+                            '</div>' +
+                            '<button class="toggle-btn">查看内容</button>' +
+                        '</div>' +
+                        '<div class="backup-detail" style="display:none;"></div>' +
+                    '</div>'
+                );
+            });
+
+            content.innerHTML =
+                parts.join('') +
+                '<div style="text-align:center;"><a class="logout-link" id="logout">退出登录</a></div>';
+
+            document.querySelectorAll('.backup-card-head').forEach(head => {
+                head.addEventListener('click', () => toggleDetail(head));
+            });
+            const lo = document.getElementById('logout');
+            if (lo) lo.addEventListener('click', logout);
+        }
+
+        async function toggleDetail(head) {
+            const card = head.closest('.backup-card');
+            const detail = card.querySelector('.backup-detail');
+            const btn = head.querySelector('.toggle-btn');
+            const clientType = card.getAttribute('data-client');
+
+            if (detail.style.display !== 'none') {
+                detail.style.display = 'none';
+                btn.textContent = '查看内容';
+                return;
+            }
+
+            if (!detail.dataset.loaded) {
+                detail.innerHTML = '<div style="color:var(--text-light);">加载中…</div>';
+                detail.style.display = 'block';
+                btn.textContent = '收起';
+
+                const token = getToken();
+                let res;
+                try {
+                    res = await fetch(`${API_BASE}/api/backups/${encodeURIComponent(clientType)}`, {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                } catch (e) {
+                    detail.innerHTML = '<div style="color:var(--text-light);">无法连接服务器</div>';
+                    return;
+                }
+
+                if (res.status === 401) {
+                    showLoginPrompt();
+                    return;
+                }
+                if (!res.ok) {
+                    detail.innerHTML = '<div style="color:var(--text-light);">加载失败：HTTP ' + res.status + '</div>';
+                    return;
+                }
+
+                const data = await res.json();
+                const pretty = JSON.stringify(data.config || {}, null, 2);
+                detail.innerHTML = '<pre>' + escapeHtml(pretty) + '</pre>';
+                detail.dataset.loaded = '1';
+            } else {
+                detail.style.display = 'block';
+                btn.textContent = '收起';
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', loadBackups);
+    </script>
+</body>
+</html>
