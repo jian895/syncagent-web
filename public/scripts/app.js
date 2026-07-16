@@ -1,7 +1,7 @@
 // API 端点（开发时用本地，部署后自动切换）
 const API_BASE = window.location.hostname === 'localhost' 
     ? 'http://localhost:8000'
-    : 'https://syncagent-api-production.up.railway.app';
+    : 'https://web-production-1fa7e.up.railway.app';
 
 // 发送验证码
 async function sendCode() {
