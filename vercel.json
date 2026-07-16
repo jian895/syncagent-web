@@ -1,18 +1,9 @@
 {
+  "buildCommand": "echo 'No build needed'",
+  "outputDirectory": "public",
   "rewrites": [
-    { "source": "/", "destination": "/public/index.html" },
-    { "source": "/setup", "destination": "/public/setup.html" },
-    { "source": "/docs", "destination": "/public/docs.html" }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
-        }
-      ]
-    }
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/setup", "destination": "/setup.html" },
+    { "source": "/docs", "destination": "/docs.html" }
   ]
 }
