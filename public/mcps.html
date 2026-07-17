@@ -208,37 +208,41 @@
         }
 
         function toggleTransport() {
-            const t = document.getElementById('f-transport').value;
-            document.getElementById('field-url').style.display = t === 'http' ? '' : 'none';
-            document.getElementById('field-command').style.display = t === 'stdio' ? '' : 'none';
-            document.getElementById('field-args').style.display = t === 'stdio' ? '' : 'none';
+            const el = document.getElementById('f-transport');
+            if (!el) return;
+            const t = el.value;
+            const urlF = document.getElementById('field-url');
+            const cmdF = document.getElementById('field-command');
+            const argsF = document.getElementById('field-args');
+            if (urlF) urlF.style.display = t === 'http' ? '' : 'none';
+            if (cmdF) cmdF.style.display = t === 'stdio' ? '' : 'none';
+            if (argsF) argsF.style.display = t === 'stdio' ? '' : 'none';
         }
-        document.getElementById('f-transport').addEventListener('change', toggleTransport);
 
         function resetForm() {
-            document.getElementById('edit-id').value = '';
-            document.getElementById('form-title').textContent = '添加 MCP 服务器';
-            document.getElementById('f-name').value = '';
-            document.getElementById('f-name').disabled = false;
-            document.getElementById('f-transport').value = 'http';
-            document.getElementById('f-url').value = '';
-            document.getElementById('f-command').value = '';
-            document.getElementById('f-args').value = '';
-            document.getElementById('f-headers').value = '';
-            document.getElementById('f-env').value = '';
-            document.getElementById('f-note').value = '';
-            document.getElementById('btn-cancel').style.display = 'none';
+            const editId = document.getElementById('edit-id');
+            if (editId) editId.value = '';
+            const title = document.getElementById('form-title');
+            if (title) title.textContent = '添加 MCP 服务器';
+            ['f-name','f-url','f-command','f-args','f-headers','f-env','f-note'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            const nameEl = document.getElementById('f-name');
+            if (nameEl) nameEl.disabled = false;
+            const tr = document.getElementById('f-transport');
+            if (tr) tr.value = 'http';
+            const cancel = document.getElementById('btn-cancel');
+            if (cancel) cancel.style.display = 'none';
             toggleTransport();
         }
-
-        document.getElementById('btn-cancel').addEventListener('click', resetForm);
 
         async function loadList() {
             const t = token();
             if (!t) { showLogin(); return; }
 
-            formCard.style.display = '';
-            hintBox.style.display = '';
+            if (formCard) formCard.style.display = '';
+            if (hintBox) hintBox.style.display = '';
 
             let res;
             try {
@@ -246,16 +250,26 @@
                     headers: { 'Authorization': 'Bearer ' + t }
                 });
             } catch (e) {
-                content.innerHTML = '<div class="state-box">无法连接服务器</div>';
+                content.innerHTML = '<div class="state-box">无法连接服务器（' + escapeHtml(String(e && e.message || e)) + '）</div>';
                 return;
             }
             if (res.status === 401) { showLogin(); return; }
             if (!res.ok) {
-                content.innerHTML = '<div class="state-box">加载失败 HTTP ' + res.status + '</div>';
+                let detail = 'HTTP ' + res.status;
+                try {
+                    const err = await res.json();
+                    if (err && err.detail) detail += ' · ' + (typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail));
+                } catch (_) {}
+                content.innerHTML = '<div class="state-box">加载失败：' + escapeHtml(detail) +
+                    '<br><a href="/setup.html">重新登录</a></div>';
                 return;
             }
-            const data = await res.json();
-            renderList(data.servers || []);
+            try {
+                const data = await res.json();
+                renderList(data.servers || []);
+            } catch (e) {
+                content.innerHTML = '<div class="state-box">解析响应失败</div>';
+            }
         }
 
         function renderList(servers) {
@@ -312,10 +326,38 @@
             document.getElementById('btn-cancel').style.display = '';
             toggleTransport();
             formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            // headers/env 留空 = 保存时不改密钥；要更新密钥请粘贴完整 JSON
         }
 
-        document.getElementById('btn-save').addEventListener('click', async () => {
+        async function delMcp(id) {
+            if (!confirm('确定删除这条托管 MCP？本地已写入的配置不会自动删除。')) return;
+            const t = token();
+            if (!t) { showLogin(); return; }
+            try {
+                const res = await fetch(API_BASE + '/api/mcps/' + encodeURIComponent(id), {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + t },
+                });
+                if (res.status === 401) { showLogin(); return; }
+                if (!res.ok && res.status !== 404) {
+                    alert('删除失败 HTTP ' + res.status);
+                    return;
+                }
+                await loadList();
+            } catch (e) {
+                alert('删除失败：无法连接服务器');
+            }
+        }
+
+        function bindForm() {
+            const tr = document.getElementById('f-transport');
+            if (tr) tr.addEventListener('change', toggleTransport);
+            const cancel = document.getElementById('btn-cancel');
+            if (cancel) cancel.addEventListener('click', resetForm);
+            const save = document.getElementById('btn-save');
+            if (save) save.addEventListener('click', onSave);
+        }
+
+        async function onSave() {
             const t = token();
             if (!t) { showLogin(); return; }
 
@@ -351,14 +393,9 @@
                 return;
             }
 
-            // 编辑时若框里仍是脱敏占位，视为「不改密钥」
             const looksMasked = (obj) => Object.values(obj).some(v => String(v).includes('****') || String(v) === '********');
-            if (editId && headersProvided && looksMasked(headers)) {
-                headersProvided = false;
-            }
-            if (editId && envProvided && looksMasked(env)) {
-                envProvided = false;
-            }
+            if (editId && headersProvided && looksMasked(headers)) headersProvided = false;
+            if (editId && envProvided && looksMasked(env)) envProvided = false;
 
             const body = { name, transport, url, command, args, note };
             if (!editId || headersProvided) body.headers = headers;
@@ -393,33 +430,30 @@
                 btn.disabled = false;
                 btn.textContent = '保存';
             }
-        });
+        }
 
-        async function delMcp(id) {
-            if (!confirm('确定删除这条托管 MCP？本地已写入的配置不会自动删除。')) return;
-            const t = token();
-            if (!t) { showLogin(); return; }
+        function boot() {
             try {
-                const res = await fetch(API_BASE + '/api/mcps/' + encodeURIComponent(id), {
-                    method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + t },
-                });
-                if (res.status === 401) { showLogin(); return; }
-                if (!res.ok && res.status !== 404) {
-                    alert('删除失败 HTTP ' + res.status);
-                    return;
-                }
-                await loadList();
+                if (typeof renderAuthNav === 'function') renderAuthNav();
+            } catch (e) { console.error(e); }
+            try {
+                bindForm();
+                toggleTransport();
+                loadList();
             } catch (e) {
-                alert('删除失败：无法连接服务器');
+                console.error(e);
+                if (content) {
+                    content.innerHTML = '<div class="state-box">页面初始化失败：' + escapeHtml(String(e && e.message || e)) +
+                        '<br>请硬刷新（Cmd+Shift+R）后重试。</div>';
+                }
             }
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
-            if (typeof renderAuthNav === 'function') renderAuthNav();
-            toggleTransport();
-            loadList();
-        });
+        if (document.readyState === 'loading') {
+            window.addEventListener('DOMContentLoaded', boot);
+        } else {
+            boot();
+        }
     </script>
 </body>
 </html>
