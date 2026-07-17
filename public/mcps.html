@@ -40,6 +40,11 @@
         .mcp-actions button:hover { border-color: var(--border-hover); }
         .mcp-actions .danger { color: var(--danger); border-color: var(--danger-border); }
         .mcp-actions .danger:hover { background: var(--danger-bg); border-color: var(--danger); }
+        .card-test-result {
+            margin-top: 0.65rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
         .form-card {
             border: 1px solid var(--border); border-radius: var(--radius-lg);
             padding: 1.35rem 1.35rem 1.15rem; margin: 1.5rem 0 2rem; background: var(--bg);
@@ -345,6 +350,8 @@
                 content.innerHTML = '<div class="state-box">还没有托管 MCP。<br>在下方表单添加一条（可填密钥），再让 AI 同步到本地。</div>';
                 return;
             }
+            // 缓存列表供卡片测试使用（含脱敏摘要；测试时后端用 id 取真密钥）
+            window.__mcpServers = servers;
             content.innerHTML = servers.map(s => {
                 const endpoint = s.transport === 'stdio'
                     ? escapeHtml((s.command || '') + ' ' + (s.args || []).join(' '))
@@ -362,10 +369,12 @@
                           (s.note ? '<div class="mcp-meta">' + escapeHtml(s.note) + '</div>' : '') +
                         '</div>' +
                         '<div class="mcp-actions">' +
+                          '<button type="button" data-act="test">测试</button>' +
                           '<button type="button" data-act="edit">编辑</button>' +
                           '<button type="button" class="danger" data-act="del">删除</button>' +
                         '</div>' +
                       '</div>' +
+                      '<div class="card-test-result" data-test-result style="display:none;"></div>' +
                     '</div>'
                 );
             }).join('');
@@ -376,6 +385,73 @@
             content.querySelectorAll('[data-act="edit"]').forEach(btn => {
                 btn.addEventListener('click', () => startEdit(btn.closest('.mcp-card').dataset.id, servers));
             });
+            content.querySelectorAll('[data-act="test"]').forEach(btn => {
+                btn.addEventListener('click', () => testSavedMcp(btn));
+            });
+        }
+
+        async function testSavedMcp(btn) {
+            const card = btn.closest('.mcp-card');
+            if (!card) return;
+            const id = card.dataset.id;
+            const t = token();
+            if (!t) { showLogin(); return; }
+
+            const resultEl = card.querySelector('[data-test-result]');
+            const show = (kind, text) => {
+                if (!resultEl) return;
+                resultEl.style.display = '';
+                resultEl.className = 'card-test-result test-result ' + (kind || '');
+                resultEl.textContent = text;
+            };
+
+            btn.disabled = true;
+            const old = btn.textContent;
+            btn.textContent = '测试中…';
+            show('pending', '正在探测…');
+
+            // 只传 id：服务端用库里的完整配置（含密钥）探测
+            // 同时附带列表里的 url/transport 作为兜底展示
+            const s = (window.__mcpServers || []).find(x => x.id === id) || {};
+            const payload = {
+                id: id,
+                transport: s.transport || 'http',
+                url: s.url || '',
+                command: s.command || '',
+                args: s.args || [],
+            };
+
+            try {
+                const res = await fetch(apiBase() + '/api/mcps/test', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + t,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload),
+                });
+                if (res.status === 401) { showLogin(); return; }
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    show('fail', data.detail || ('测试失败 HTTP ' + res.status));
+                    return;
+                }
+                const ms = data.latency_ms != null ? '（' + data.latency_ms + 'ms）' : '';
+                if (data.ok) {
+                    show('ok', (data.message || '连接成功') + ms);
+                } else if (data.skipped) {
+                    show('pending', data.message || '已跳过');
+                } else {
+                    let msg = (data.message || '连接失败') + ms;
+                    if (data.body_preview) msg += ' · ' + String(data.body_preview).slice(0, 120);
+                    show('fail', msg);
+                }
+            } catch (e) {
+                show('fail', '无法连接 API：' + (e && e.message || e));
+            } finally {
+                btn.disabled = false;
+                btn.textContent = old;
+            }
         }
 
         function startEdit(id, servers) {
