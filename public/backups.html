@@ -261,9 +261,13 @@
     </div>
 
     <script>
-        const API_BASE = window.location.hostname === 'localhost'
-            ? 'http://localhost:8000'
-            : 'https://web-production-1fa7e.up.railway.app';
+        // 不要重复 const API_BASE（app.js 已声明）；用函数读取
+        function apiBase() {
+            if (typeof API_BASE !== 'undefined' && API_BASE) return API_BASE;
+            return window.location.hostname === 'localhost'
+                ? 'http://localhost:8000'
+                : 'https://web-production-1fa7e.up.railway.app';
+        }
 
         const content = document.getElementById('content');
 
@@ -466,7 +470,7 @@
 
             let res;
             try {
-                res = await fetch(API_BASE + '/api/backups', {
+                res = await fetch(apiBase() + '/api/backups', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
             } catch (e) {
@@ -594,7 +598,7 @@
 
             let res;
             try {
-                res = await fetch(API_BASE + '/api/backups/' + encodeURIComponent(clientType), {
+                res = await fetch(apiBase() + '/api/backups/' + encodeURIComponent(clientType), {
                     method: 'DELETE',
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
@@ -634,7 +638,7 @@
                 const token = getToken();
                 let res;
                 try {
-                    res = await fetch(API_BASE + '/api/backups/' + encodeURIComponent(clientType), {
+                    res = await fetch(apiBase() + '/api/backups/' + encodeURIComponent(clientType), {
                         headers: { 'Authorization': 'Bearer ' + token }
                     });
                 } catch (e) {
