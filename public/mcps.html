@@ -148,6 +148,7 @@
         <main class="mcps-page">
             <h2>MCP 托管</h2>
             <p class="mcps-sub">在平台填写 MCP 与密钥 · 对 AI 说「同步 MCP 到本地」即可写入本机<br>密钥只存在你的账号下，不经养成资产备份流程</p>
+            <p id="account-line" class="mcps-sub" style="margin-top:-1rem;display:none;"></p>
 
             <div id="content"><div class="state-box">加载中…</div></div>
 
@@ -298,6 +299,22 @@
 
             if (formCard) formCard.style.display = '';
             if (hintBox) hintBox.style.display = '';
+
+            // 显示当前网页登录账号（与智能体 Token 对比用）
+            try {
+                const meRes = await fetch(apiBase() + '/api/me', {
+                    headers: { 'Authorization': 'Bearer ' + t },
+                });
+                const acc = document.getElementById('account-line');
+                if (acc && meRes.ok) {
+                    const me = await meRes.json();
+                    acc.style.display = '';
+                    acc.innerHTML = '当前网页账号：<code>' + escapeHtml(me.email || '') +
+                        '</code> · user_id=<code>' + escapeHtml(me.user_id || '') +
+                        '</code> · 托管 MCP <strong>' + (me.mcp_count || 0) + '</strong> 个' +
+                        (me.mcp_names && me.mcp_names.length ? '（' + escapeHtml(me.mcp_names.join(', ')) + '）' : '');
+                }
+            } catch (_) {}
 
             const url = apiBase() + '/api/mcps';
             content.innerHTML = '<div class="state-box">正在请求…<br><code style="font-size:0.75rem;word-break:break-all;">' +
