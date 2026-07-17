@@ -19,13 +19,13 @@
         <main class="setup-page">
             <h2>30秒开始使用</h2>
 
-            <!-- 步骤1：注册账号 -->
+            <!-- 步骤1：登录 -->
             <section class="setup-step" id="step-auth">
                 <div class="step-header">
                     <span class="step-number">1</span>
-                    <h3>注册账号</h3>
+                    <h3>登录账号</h3>
                 </div>
-                
+
                 <div class="auth-form">
                     <div id="google-form">
                         <p class="hint">使用 Google 账号一键登录，无需密码。</p>
@@ -72,7 +72,7 @@
                 </div>
 
                 <div class="hint">
-                    <p><strong>提示：</strong>这条命令适用于所有智能体（Reasonix、Cursor、Claude Desktop 等）</p>
+                    <p><strong>提示：</strong>适用于 Reasonix、Hermes、Codex、WorkBuddy 等支持 MCP 的智能体。装好后重启客户端。</p>
                 </div>
             </section>
 
@@ -86,18 +86,19 @@
                 <div class="usage-tips">
                     <h4>常用命令：</h4>
                     <ul>
-                        <li><code>备份我的配置</code> - 上传配置到云端</li>
-                        <li><code>恢复我的配置</code> - 从云端下载配置</li>
-                        <li><code>查看同步状态</code> - 查看云端备份情况</li>
+                        <li><code>备份我的配置</code> — 把技能 / 记忆 / 人格上传到云端</li>
+                        <li><code>恢复我的配置</code> — 从云端写回本地（同智能体换设备）</li>
+                        <li><code>查看同步状态</code> — 看云端已有哪些备份</li>
+                    </ul>
+
+                    <h4>会备份什么 / 不会备份什么：</h4>
+                    <ul>
+                        <li>✅ 技能（SKILL.md）、记忆、人格设定、规则、AGENTS.md</li>
+                        <li>❌ API Key / Token、MCP 连接配置、登录态 — 本机自行配置</li>
                     </ul>
 
                     <h4>首次使用：</h4>
-                    <p>重启智能体后，MCP Server 会自动检测：</p>
-                    <ul>
-                        <li>如果云端没有配置 → 提示你"要备份当前配置吗？"</li>
-                        <li>如果云端有同类型智能体配置 → 提示你"要恢复吗？"</li>
-                        <li>如果云端有其他智能体配置 → 提示你"要迁移吗？"</li>
-                    </ul>
+                    <p>在智能体里说「备份我的配置」。AI 会按该客户端的清单收齐养成资产后上传。可随时到 <a href="/backups.html">我的备份</a> 查看内容。</p>
                 </div>
             </section>
         </main>
