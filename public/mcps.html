@@ -244,14 +244,30 @@
             if (formCard) formCard.style.display = '';
             if (hintBox) hintBox.style.display = '';
 
+            const url = API_BASE + '/api/mcps';
+            content.innerHTML = '<div class="state-box">正在请求…<br><code style="font-size:0.75rem;word-break:break-all;">' +
+                escapeHtml(url) + '</code></div>';
+
             let res;
+            const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+            const timer = ctrl ? setTimeout(() => ctrl.abort(), 12000) : null;
             try {
-                res = await fetch(API_BASE + '/api/mcps', {
-                    headers: { 'Authorization': 'Bearer ' + t }
+                res = await fetch(url, {
+                    headers: { 'Authorization': 'Bearer ' + t },
+                    signal: ctrl ? ctrl.signal : undefined,
                 });
             } catch (e) {
-                content.innerHTML = '<div class="state-box">无法连接服务器（' + escapeHtml(String(e && e.message || e)) + '）</div>';
+                const msg = (e && e.name === 'AbortError')
+                    ? '请求超时（12s）。请检查能否访问 API，或关闭/绕过本地代理后再试。'
+                    : ('无法连接服务器：' + String(e && e.message || e));
+                content.innerHTML = '<div class="state-box">' + escapeHtml(msg) +
+                    '<br><br>API：<code style="font-size:0.75rem;word-break:break-all;">' + escapeHtml(url) + '</code>' +
+                    '<br><a href="/setup.html">重新登录</a> · <a href="#" id="retry-load">重试</a></div>';
+                const retry = document.getElementById('retry-load');
+                if (retry) retry.addEventListener('click', (ev) => { ev.preventDefault(); loadList(); });
                 return;
+            } finally {
+                if (timer) clearTimeout(timer);
             }
             if (res.status === 401) { showLogin(); return; }
             if (!res.ok) {
@@ -261,7 +277,9 @@
                     if (err && err.detail) detail += ' · ' + (typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail));
                 } catch (_) {}
                 content.innerHTML = '<div class="state-box">加载失败：' + escapeHtml(detail) +
-                    '<br><a href="/setup.html">重新登录</a></div>';
+                    '<br><a href="/setup.html">重新登录</a> · <a href="#" id="retry-load">重试</a></div>';
+                const retry = document.getElementById('retry-load');
+                if (retry) retry.addEventListener('click', (ev) => { ev.preventDefault(); loadList(); });
                 return;
             }
             try {
