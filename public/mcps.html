@@ -89,6 +89,28 @@
             user-select: none;
         }
         details.advanced[open] summary { margin-bottom: 0.35rem; }
+        .test-result {
+            margin-top: 0.75rem;
+            padding: 0.65rem 0.85rem;
+            border-radius: var(--radius);
+            font-size: 0.8125rem;
+            line-height: 1.5;
+            border: 1px solid var(--border);
+        }
+        .test-result.ok {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            color: #166534;
+        }
+        .test-result.fail {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #991b1b;
+        }
+        .test-result.pending {
+            background: var(--bg-secondary);
+            color: var(--fg-secondary);
+        }
         .hint-box {
             margin-top: 1.5rem; padding: 0.85rem 1rem; background: var(--bg-secondary);
             border-left: 2px solid var(--fg); border-radius: 0 var(--radius) var(--radius) 0;
@@ -175,8 +197,10 @@
 
                 <div class="form-actions">
                     <button type="button" id="btn-cancel" style="display:none;">取消</button>
+                    <button type="button" id="btn-test">测试连接</button>
                     <button type="button" class="primary" id="btn-save">保存</button>
                 </div>
+                <div id="test-result" class="test-result" style="display:none;"></div>
             </div>
 
             <div class="hint-box" id="hint-box" style="display:none;">
@@ -397,19 +421,7 @@
             }
         }
 
-        function bindForm() {
-            const tr = document.getElementById('f-transport');
-            if (tr) tr.addEventListener('change', toggleTransport);
-            const cancel = document.getElementById('btn-cancel');
-            if (cancel) cancel.addEventListener('click', resetForm);
-            const save = document.getElementById('btn-save');
-            if (save) save.addEventListener('click', onSave);
-        }
-
-        async function onSave() {
-            const t = token();
-            if (!t) { showLogin(); return; }
-
+        function buildMcpPayloadFromForm() {
             const editId = document.getElementById('edit-id').value;
             let name = document.getElementById('f-name').value.trim();
             const transport = document.getElementById('f-transport').value || 'http';
@@ -419,7 +431,6 @@
             const args = document.getElementById('f-args').value.split('\n').map(s => s.trim()).filter(Boolean);
             const note = document.getElementById('f-note').value.trim();
 
-            // 名称可空：从 URL 主机名生成
             if (!name) {
                 try {
                     const u = new URL(url);
@@ -429,52 +440,126 @@
                 }
             }
             if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
-                alert('名称只能包含字母、数字、-、_');
-                return;
+                throw new Error('名称只能包含字母、数字、-、_');
             }
             if (transport === 'http' && !url) {
-                alert('请填写 URL');
-                return;
+                throw new Error('请填写 URL');
             }
             if (transport === 'stdio' && !command) {
-                alert('本地命令类型请填写 command');
-                return;
+                throw new Error('本地命令类型请填写 command');
             }
 
             let headers = {};
             let env = {};
             let headersProvided = false;
             let envProvided = false;
-            try {
-                const hRaw = document.getElementById('f-headers').value.trim();
-                const eRaw = document.getElementById('f-env').value.trim();
-                if (hRaw) {
-                    headers = parseJsonObject(hRaw, 'headers');
-                    headersProvided = true;
-                }
-                if (eRaw) {
-                    env = parseJsonObject(eRaw, 'env');
-                    envProvided = true;
-                }
-            } catch (e) {
-                alert(e.message);
-                return;
+            const hRaw = document.getElementById('f-headers').value.trim();
+            const eRaw = document.getElementById('f-env').value.trim();
+            if (hRaw) {
+                headers = parseJsonObject(hRaw, 'headers');
+                headersProvided = true;
             }
-
-            // 主路径：简单 Token → Authorization
+            if (eRaw) {
+                env = parseJsonObject(eRaw, 'env');
+                envProvided = true;
+            }
             if (tokenRaw) {
                 const auth = /^bearer\s+/i.test(tokenRaw) ? tokenRaw : ('Bearer ' + tokenRaw);
                 headers = Object.assign({}, headers, { Authorization: auth });
                 headersProvided = true;
             }
-
             const looksMasked = (obj) => Object.values(obj).some(v => String(v).includes('****') || String(v) === '********');
             if (editId && headersProvided && looksMasked(headers)) headersProvided = false;
             if (editId && envProvided && looksMasked(env)) envProvided = false;
 
             const body = { name, transport, url, command, args, note };
+            if (editId) body.id = editId;
             if (!editId || headersProvided) body.headers = headers;
             if (!editId || envProvided) body.env = env;
+            return body;
+        }
+
+        function showTestResult(kind, text) {
+            const el = document.getElementById('test-result');
+            if (!el) return;
+            el.style.display = '';
+            el.className = 'test-result ' + (kind || '');
+            el.textContent = text;
+        }
+
+        async function onTest() {
+            const t = token();
+            if (!t) { showLogin(); return; }
+            let payload;
+            try {
+                payload = buildMcpPayloadFromForm();
+            } catch (e) {
+                showTestResult('fail', e.message || String(e));
+                return;
+            }
+            const btn = document.getElementById('btn-test');
+            btn.disabled = true;
+            const old = btn.textContent;
+            btn.textContent = '测试中…';
+            showTestResult('pending', '正在从服务端探测连接…');
+            try {
+                const res = await fetch(apiBase() + '/api/mcps/test', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + t,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload),
+                });
+                if (res.status === 401) { showLogin(); return; }
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    showTestResult('fail', data.detail || ('测试失败 HTTP ' + res.status));
+                    return;
+                }
+                const ms = data.latency_ms != null ? '（' + data.latency_ms + 'ms）' : '';
+                if (data.ok) {
+                    showTestResult('ok', (data.message || '连接成功') + ms);
+                } else if (data.skipped) {
+                    showTestResult('pending', data.message || '已跳过测试');
+                } else {
+                    let msg = (data.message || '连接失败') + ms;
+                    if (data.body_preview) msg += '\n' + String(data.body_preview).slice(0, 200);
+                    showTestResult('fail', msg);
+                }
+            } catch (e) {
+                showTestResult('fail', '无法连接 SyncAgent API：' + (e && e.message || e));
+            } finally {
+                btn.disabled = false;
+                btn.textContent = old;
+            }
+        }
+
+        function bindForm() {
+            const tr = document.getElementById('f-transport');
+            if (tr) tr.addEventListener('change', toggleTransport);
+            const cancel = document.getElementById('btn-cancel');
+            if (cancel) cancel.addEventListener('click', resetForm);
+            const save = document.getElementById('btn-save');
+            if (save) save.addEventListener('click', onSave);
+            const testBtn = document.getElementById('btn-test');
+            if (testBtn) testBtn.addEventListener('click', onTest);
+        }
+
+        async function onSave() {
+            const t = token();
+            if (!t) { showLogin(); return; }
+
+            let body;
+            try {
+                body = buildMcpPayloadFromForm();
+            } catch (e) {
+                alert(e.message || String(e));
+                return;
+            }
+            const editId = body.id || '';
+            const saveBody = Object.assign({}, body);
+            delete saveBody.id;
 
             const btn = document.getElementById('btn-save');
             btn.disabled = true;
@@ -489,7 +574,7 @@
                             'Authorization': 'Bearer ' + t,
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify(body),
+                        body: JSON.stringify(saveBody),
                     }
                 );
                 if (res.status === 401) { showLogin(); return; }
@@ -499,6 +584,8 @@
                     return;
                 }
                 resetForm();
+                const tr = document.getElementById('test-result');
+                if (tr) { tr.style.display = 'none'; tr.textContent = ''; }
                 await loadList();
             } catch (e) {
                 alert('保存失败：无法连接服务器');
