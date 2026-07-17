@@ -7,148 +7,134 @@
     <link rel="stylesheet" href="/styles/main.css">
     <style>
         .backups-page {
-            max-width: 900px;
-            margin: 3rem auto;
+            max-width: 720px;
+            margin: 3rem auto 4rem;
         }
         .backups-page h2 {
-            font-size: 2.5rem;
+            font-size: 1.75rem;
             font-weight: 700;
             text-align: center;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.35rem;
+            letter-spacing: -0.03em;
         }
         .backups-sub {
             text-align: center;
-            color: var(--text-light);
-            margin-bottom: 2.5rem;
-            font-size: 0.95rem;
+            color: var(--fg-secondary);
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
         }
         .state-box {
-            padding: 2.5rem;
-            background: white;
+            padding: 2.5rem 1.5rem;
+            background: var(--bg);
             border: 1px solid var(--border);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
+            border-radius: var(--radius-lg);
             text-align: center;
-            color: var(--text-light);
+            color: var(--fg-secondary);
+            font-size: 0.9375rem;
+            line-height: 1.7;
         }
         .state-box a {
-            color: var(--primary);
-            font-weight: 600;
-            text-decoration: none;
+            color: var(--fg);
+            font-weight: 500;
+            text-decoration: underline;
+            text-underline-offset: 2px;
         }
         .backup-card {
-            margin: 1.25rem 0;
-            padding: 1.75rem 2rem;
-            background: white;
+            margin: 0.75rem 0;
+            padding: 1.25rem 1.35rem;
+            background: var(--bg);
             border: 1px solid var(--border);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            transition: all 0.2s;
+            border-radius: var(--radius-lg);
+            transition: border-color 0.15s;
         }
         .backup-card:hover {
-            border-color: var(--primary-light);
-            box-shadow: var(--shadow-lg);
+            border-color: var(--border-hover);
         }
         .backup-card-head {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: space-between;
             gap: 1rem;
             cursor: pointer;
         }
         .backup-title {
-            font-size: 1.25rem;
+            font-size: 1.0625rem;
             font-weight: 600;
-            color: var(--text);
+            color: var(--fg);
+            letter-spacing: -0.01em;
         }
         .backup-meta {
-            font-size: 0.875rem;
-            color: var(--text-light);
-            margin-top: 0.35rem;
+            font-size: 0.8125rem;
+            color: var(--fg-tertiary);
+            margin-top: 0.25rem;
         }
         .backup-chips {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-top: 0.75rem;
+            gap: 0.35rem;
+            margin-top: 0.65rem;
         }
         .chip {
-            padding: 0.25rem 0.75rem;
-            background: var(--bg-tertiary);
+            padding: 0.15rem 0.55rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
             border-radius: 9999px;
-            font-size: 0.8rem;
-            color: var(--primary);
+            font-size: 0.75rem;
+            color: var(--fg-secondary);
             font-weight: 500;
         }
         .chip.chip-legacy {
-            color: var(--text-muted);
-            background: var(--bg-secondary);
+            color: var(--fg-tertiary);
+            background: transparent;
+            border-style: dashed;
             text-decoration: line-through;
         }
-        .toggle-btn {
-            padding: 0.6rem 1.25rem;
-            background: var(--bg-secondary);
+        .toggle-btn,
+        .restore-hint-btn,
+        .delete-btn {
+            padding: 0.4rem 0.8rem;
+            background: var(--bg);
             border: 1px solid var(--border);
-            border-radius: var(--radius);
+            border-radius: 9999px;
             cursor: pointer;
-            font-weight: 600;
-            font-size: 0.875rem;
-            color: var(--text);
+            font-weight: 500;
+            font-size: 0.75rem;
+            color: var(--fg);
             white-space: nowrap;
-            transition: all 0.2s;
+            transition: border-color 0.15s, background 0.15s;
+            font-family: inherit;
         }
-        .toggle-btn:hover {
-            background: var(--bg-tertiary);
+        .toggle-btn:hover,
+        .restore-hint-btn:hover {
+            border-color: var(--border-hover);
+            background: var(--bg);
         }
         .backup-actions {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.4rem;
             flex-shrink: 0;
             flex-wrap: wrap;
             justify-content: flex-end;
         }
         .delete-btn {
-            padding: 0.6rem 1.25rem;
-            background: #fff;
-            border: 1px solid #fecaca;
-            border-radius: var(--radius);
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.875rem;
-            color: #dc2626;
-            white-space: nowrap;
-            transition: all 0.2s;
+            color: var(--danger);
+            border-color: var(--danger-border);
         }
         .delete-btn:hover:not(:disabled) {
-            background: #fef2f2;
-            border-color: #dc2626;
+            background: var(--danger-bg);
+            border-color: var(--danger);
         }
         .delete-btn:disabled {
-            opacity: 0.5;
+            opacity: 0.45;
             cursor: not-allowed;
         }
-        .restore-hint-btn {
-            padding: 0.6rem 1.25rem;
-            background: #fff;
-            border: 1px solid var(--primary-light);
-            border-radius: var(--radius);
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.875rem;
-            color: var(--primary);
-            white-space: nowrap;
-            transition: all 0.2s;
-        }
-        .restore-hint-btn:hover {
-            background: #eef2ff;
-        }
         .backup-detail {
-            margin-top: 1.5rem;
+            margin-top: 1.15rem;
             border-top: 1px solid var(--border);
-            padding-top: 1.5rem;
+            padding-top: 1.15rem;
         }
         .kind-block {
-            margin-bottom: 1.25rem;
+            margin-bottom: 1.1rem;
         }
         .kind-block:last-child {
             margin-bottom: 0;
@@ -156,86 +142,87 @@
         .kind-head {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.45rem;
             font-weight: 600;
-            color: var(--text);
-            margin-bottom: 0.5rem;
+            color: var(--fg);
+            margin-bottom: 0.45rem;
         }
         .kind-head .kind-label {
-            font-size: 0.95rem;
+            font-size: 0.875rem;
         }
         .kind-head .kind-count {
             font-size: 0.75rem;
-            color: var(--text-muted);
+            color: var(--fg-tertiary);
             font-weight: 500;
         }
         .kind-empty {
-            font-size: 0.875rem;
-            color: var(--text-muted);
-            padding: 0.5rem 0;
+            font-size: 0.8125rem;
+            color: var(--fg-tertiary);
+            padding: 0.35rem 0;
         }
         .file-item {
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.4rem;
             overflow: hidden;
-            background: var(--bg-secondary);
+            background: var(--bg);
         }
         .file-item-head {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 0.75rem;
-            padding: 0.65rem 1rem;
+            padding: 0.55rem 0.85rem;
             cursor: pointer;
-            font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
-            font-size: 0.8rem;
-            color: var(--text);
+            font-family: var(--mono);
+            font-size: 0.75rem;
+            color: var(--fg);
         }
         .file-item-head:hover {
-            background: var(--bg-tertiary);
+            background: var(--bg-secondary);
         }
         .file-relpath {
             word-break: break-all;
         }
         .file-size {
-            color: var(--text-muted);
-            font-size: 0.75rem;
+            color: var(--fg-tertiary);
+            font-size: 0.7rem;
             white-space: nowrap;
             flex-shrink: 0;
         }
         .file-item pre {
             margin: 0;
-            padding: 1rem;
-            background: var(--text);
-            color: var(--bg);
-            font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
-            font-size: 0.78rem;
+            padding: 0.85rem 1rem;
+            background: #000;
+            color: #fafafa;
+            font-family: var(--mono);
+            font-size: 0.75rem;
             line-height: 1.55;
             max-height: 320px;
             overflow: auto;
-            border-top: 1px solid rgba(255,255,255,0.08);
+            border-top: 1px solid #222;
             white-space: pre-wrap;
             word-break: break-word;
         }
         .legacy-note {
-            font-size: 0.8rem;
-            color: var(--text-muted);
+            font-size: 0.75rem;
+            color: var(--fg-tertiary);
             margin-top: 0.75rem;
-            padding: 0.6rem 0.85rem;
+            padding: 0.55rem 0.75rem;
             background: var(--bg-secondary);
+            border: 1px dashed var(--border);
             border-radius: var(--radius);
         }
         .logout-link {
             display: inline-block;
             margin-top: 1rem;
-            color: var(--text-light);
-            font-size: 0.875rem;
+            color: var(--fg-tertiary);
+            font-size: 0.8125rem;
             cursor: pointer;
             text-decoration: none;
         }
         .logout-link:hover {
-            color: var(--primary);
+            color: var(--fg);
         }
         @media (max-width: 640px) {
             .backup-card-head {
@@ -255,7 +242,7 @@
     <div class="container">
         <header>
             <div class="header-bar">
-                <a href="/index.html" class="brand"><h1>🔄 SyncAgent</h1></a>
+                <a href="/index.html" class="brand"><h1>SyncAgent</h1></a>
                 <div class="nav-actions" id="nav-actions"></div>
             </div>
         </header>
@@ -371,7 +358,7 @@
             const email = emailFromToken(token);
             nav.innerHTML =
                 (email ? '<span class="nav-user" title="' + escapeHtml(email) + '">' + escapeHtml(email) + '</span>' : '') +
-                '<a href="/backups.html" class="nav-btn">📦 我的备份</a>' +
+                '<a href="/backups.html" class="nav-btn">我的备份</a>' +
                 '<a href="/setup.html" class="nav-btn nav-btn-ghost">安装命令</a>' +
                 '<button type="button" class="nav-btn nav-btn-ghost" id="nav-logout">退出</button>';
             const btn = document.getElementById('nav-logout');
