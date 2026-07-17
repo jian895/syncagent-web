@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP 托管 - SyncAgent</title>
+    <link rel="stylesheet" href="/styles/main.css">
+    <style>
+        .mcps-page { max-width: 720px; margin: 3rem auto 4rem; }
+        .mcps-page h2 {
+            font-size: 1.75rem; font-weight: 700; text-align: center;
+            letter-spacing: -0.03em; margin-bottom: 0.35rem;
+        }
+        .mcps-sub {
+            text-align: center; color: var(--fg-secondary);
+            font-size: 0.9rem; margin-bottom: 2rem; line-height: 1.6;
+        }
+        .state-box {
+            padding: 2rem 1.5rem; border: 1px solid var(--border);
+            border-radius: var(--radius-lg); text-align: center;
+            color: var(--fg-secondary); font-size: 0.9375rem;
+        }
+        .state-box a { color: var(--fg); font-weight: 500; text-decoration: underline; text-underline-offset: 2px; }
+        .mcp-card {
+            border: 1px solid var(--border); border-radius: var(--radius-lg);
+            padding: 1.15rem 1.25rem; margin: 0.75rem 0; background: var(--bg);
+        }
+        .mcp-card:hover { border-color: var(--border-hover); }
+        .mcp-card-head {
+            display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start;
+        }
+        .mcp-name { font-weight: 600; font-size: 1rem; letter-spacing: -0.01em; }
+        .mcp-meta { font-size: 0.8125rem; color: var(--fg-tertiary); margin-top: 0.25rem; word-break: break-all; }
+        .mcp-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+        .mcp-actions button {
+            padding: 0.35rem 0.75rem; border-radius: 9999px; border: 1px solid var(--border);
+            background: var(--bg); font-size: 0.75rem; font-weight: 500; cursor: pointer;
+            font-family: inherit; color: var(--fg);
+        }
+        .mcp-actions button:hover { border-color: var(--border-hover); }
+        .mcp-actions .danger { color: var(--danger); border-color: var(--danger-border); }
+        .mcp-actions .danger:hover { background: var(--danger-bg); border-color: var(--danger); }
+        .form-card {
+            border: 1px solid var(--border); border-radius: var(--radius-lg);
+            padding: 1.35rem 1.35rem 1.15rem; margin: 1.5rem 0 2rem; background: var(--bg);
+        }
+        .form-card h3 {
+            font-size: 0.9375rem; font-weight: 600; margin-bottom: 1rem; letter-spacing: -0.01em;
+        }
+        .field { margin-bottom: 0.85rem; }
+        .field label {
+            display: block; font-size: 0.75rem; font-weight: 500;
+            color: var(--fg-secondary); margin-bottom: 0.3rem;
+        }
+        .field input, .field select, .field textarea {
+            width: 100%; padding: 0.55rem 0.75rem; border: 1px solid var(--border);
+            border-radius: var(--radius); font-size: 0.875rem; font-family: inherit;
+            background: var(--bg); color: var(--fg);
+        }
+        .field input:focus, .field select:focus, .field textarea:focus {
+            outline: none; border-color: var(--fg);
+        }
+        .field textarea { min-height: 72px; resize: vertical; font-family: var(--mono); font-size: 0.8rem; }
+        .field .help { font-size: 0.75rem; color: var(--fg-tertiary); margin-top: 0.25rem; }
+        .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+        .form-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.5rem; }
+        .form-actions button {
+            padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.8125rem;
+            font-weight: 500; cursor: pointer; font-family: inherit; border: 1px solid var(--border);
+            background: var(--bg); color: var(--fg);
+        }
+        .form-actions .primary {
+            background: var(--fg); color: #fff; border-color: var(--fg);
+        }
+        .form-actions .primary:hover { background: #333; }
+        .form-actions .primary:disabled { opacity: 0.4; cursor: not-allowed; }
+        .hint-box {
+            margin-top: 1.5rem; padding: 0.85rem 1rem; background: var(--bg-secondary);
+            border-left: 2px solid var(--fg); border-radius: 0 var(--radius) var(--radius) 0;
+            font-size: 0.8125rem; color: var(--fg-secondary); line-height: 1.6;
+        }
+        .hint-box code {
+            font-family: var(--mono); font-size: 0.85em; padding: 0.1rem 0.3rem;
+            background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px;
+        }
+        .tag {
+            display: inline-block; padding: 0.1rem 0.45rem; border-radius: 9999px;
+            border: 1px solid var(--border); font-size: 0.7rem; color: var(--fg-secondary);
+            margin-right: 0.35rem; font-weight: 500;
+        }
+        @media (max-width: 640px) {
+            .row-2 { grid-template-columns: 1fr; }
+            .mcp-card-head { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-bar">
+                <a href="/index.html" class="brand"><h1>SyncAgent</h1></a>
+                <div class="nav-actions" id="nav-actions"></div>
+            </div>
+        </header>
+
+        <main class="mcps-page">
+            <h2>MCP 托管</h2>
+            <p class="mcps-sub">在平台填写 MCP 与密钥 · 对 AI 说「同步 MCP 到本地」即可写入本机<br>密钥只存在你的账号下，不经养成资产备份流程</p>
+
+            <div id="content"><div class="state-box">加载中…</div></div>
+
+            <div class="form-card" id="form-card" style="display:none;">
+                <h3 id="form-title">添加 MCP 服务器</h3>
+                <input type="hidden" id="edit-id" value="">
+                <div class="row-2">
+                    <div class="field">
+                        <label for="f-name">名称 name *</label>
+                        <input id="f-name" placeholder="zoho-books" autocomplete="off">
+                        <div class="help">字母数字 - _，写入本地时用作服务器标识</div>
+                    </div>
+                    <div class="field">
+                        <label for="f-transport">类型 transport *</label>
+                        <select id="f-transport">
+                            <option value="http">http（远程 URL）</option>
+                            <option value="stdio">stdio（本地命令）</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field" id="field-url">
+                    <label for="f-url">URL *</label>
+                    <input id="f-url" placeholder="https://example.com/mcp" autocomplete="off">
+                </div>
+                <div class="field" id="field-command" style="display:none;">
+                    <label for="f-command">command *</label>
+                    <input id="f-command" placeholder="npx" autocomplete="off">
+                </div>
+                <div class="field" id="field-args" style="display:none;">
+                    <label for="f-args">args（每行一个）</label>
+                    <textarea id="f-args" placeholder="-y&#10;@modelcontextprotocol/server-xxx"></textarea>
+                </div>
+                <div class="field">
+                    <label for="f-headers">headers（JSON 对象，可含 Authorization）</label>
+                    <textarea id="f-headers" placeholder='{"Authorization": "Bearer sk-..."}'></textarea>
+                    <div class="help">新建可填密钥。编辑时留空表示不修改原密钥；要更新请粘贴完整 JSON 真值。</div>
+                </div>
+                <div class="field">
+                    <label for="f-env">env（JSON 对象）</label>
+                    <textarea id="f-env" placeholder='{"API_KEY": "..."}'></textarea>
+                </div>
+                <div class="field">
+                    <label for="f-note">备注</label>
+                    <input id="f-note" placeholder="可选" autocomplete="off">
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="btn-cancel" style="display:none;">取消编辑</button>
+                    <button type="button" class="primary" id="btn-save">保存</button>
+                </div>
+            </div>
+
+            <div class="hint-box" id="hint-box" style="display:none;">
+                添加完成后，在智能体里说：<br>
+                <code>把云端 MCP 同步到本地</code> 或 <code>调用 syncagent_pull_mcps(client_type=你的客户端)</code><br>
+                AI 会拉取完整配置（含密钥）并写入本机 MCP 文件。养成资产备份仍不包含这些密钥。
+            </div>
+        </main>
+
+        <footer>
+            <p>© 2026 SyncAgent · <a href="/docs.html">文档</a> · <a href="/backups.html">我的备份</a></p>
+        </footer>
+    </div>
+
+    <script src="/scripts/app.js"></script>
+    <script>
+        const API_BASE = window.location.hostname === 'localhost'
+            ? 'http://localhost:8000'
+            : 'https://web-production-1fa7e.up.railway.app';
+
+        const content = document.getElementById('content');
+        const formCard = document.getElementById('form-card');
+        const hintBox = document.getElementById('hint-box');
+
+        function token() { return localStorage.getItem('syncagent_token'); }
+
+        function escapeHtml(s) {
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function showLogin() {
+            content.innerHTML = '<div class="state-box">请先<a href="/setup.html">登录</a>后再管理 MCP。</div>';
+            formCard.style.display = 'none';
+            hintBox.style.display = 'none';
+        }
+
+        function parseJsonObject(text, fieldName) {
+            const t = (text || '').trim();
+            if (!t) return {};
+            let v;
+            try { v = JSON.parse(t); }
+            catch (e) { throw new Error(fieldName + ' 不是合法 JSON'); }
+            if (typeof v !== 'object' || v === null || Array.isArray(v)) {
+                throw new Error(fieldName + ' 必须是 JSON 对象');
+            }
+            return v;
+        }
+
+        function toggleTransport() {
+            const t = document.getElementById('f-transport').value;
+            document.getElementById('field-url').style.display = t === 'http' ? '' : 'none';
+            document.getElementById('field-command').style.display = t === 'stdio' ? '' : 'none';
+            document.getElementById('field-args').style.display = t === 'stdio' ? '' : 'none';
+        }
+        document.getElementById('f-transport').addEventListener('change', toggleTransport);
+
+        function resetForm() {
+            document.getElementById('edit-id').value = '';
+            document.getElementById('form-title').textContent = '添加 MCP 服务器';
+            document.getElementById('f-name').value = '';
+            document.getElementById('f-name').disabled = false;
+            document.getElementById('f-transport').value = 'http';
+            document.getElementById('f-url').value = '';
+            document.getElementById('f-command').value = '';
+            document.getElementById('f-args').value = '';
+            document.getElementById('f-headers').value = '';
+            document.getElementById('f-env').value = '';
+            document.getElementById('f-note').value = '';
+            document.getElementById('btn-cancel').style.display = 'none';
+            toggleTransport();
+        }
+
+        document.getElementById('btn-cancel').addEventListener('click', resetForm);
+
+        async function loadList() {
+            const t = token();
+            if (!t) { showLogin(); return; }
+
+            formCard.style.display = '';
+            hintBox.style.display = '';
+
+            let res;
+            try {
+                res = await fetch(API_BASE + '/api/mcps', {
+                    headers: { 'Authorization': 'Bearer ' + t }
+                });
+            } catch (e) {
+                content.innerHTML = '<div class="state-box">无法连接服务器</div>';
+                return;
+            }
+            if (res.status === 401) { showLogin(); return; }
+            if (!res.ok) {
+                content.innerHTML = '<div class="state-box">加载失败 HTTP ' + res.status + '</div>';
+                return;
+            }
+            const data = await res.json();
+            renderList(data.servers || []);
+        }
+
+        function renderList(servers) {
+            if (!servers.length) {
+                content.innerHTML = '<div class="state-box">还没有托管 MCP。<br>在下方表单添加一条（可填密钥），再让 AI 同步到本地。</div>';
+                return;
+            }
+            content.innerHTML = servers.map(s => {
+                const endpoint = s.transport === 'stdio'
+                    ? escapeHtml((s.command || '') + ' ' + (s.args || []).join(' '))
+                    : escapeHtml(s.url || '');
+                return (
+                    '<div class="mcp-card" data-id="' + escapeHtml(s.id) + '">' +
+                      '<div class="mcp-card-head">' +
+                        '<div>' +
+                          '<div class="mcp-name">' + escapeHtml(s.name) + '</div>' +
+                          '<div class="mcp-meta">' +
+                            '<span class="tag">' + escapeHtml(s.transport || 'http') + '</span>' +
+                            endpoint +
+                            (s.has_secrets ? ' · 含密钥' : '') +
+                          '</div>' +
+                          (s.note ? '<div class="mcp-meta">' + escapeHtml(s.note) + '</div>' : '') +
+                        '</div>' +
+                        '<div class="mcp-actions">' +
+                          '<button type="button" data-act="edit">编辑</button>' +
+                          '<button type="button" class="danger" data-act="del">删除</button>' +
+                        '</div>' +
+                      '</div>' +
+                    '</div>'
+                );
+            }).join('');
+
+            content.querySelectorAll('[data-act="del"]').forEach(btn => {
+                btn.addEventListener('click', () => delMcp(btn.closest('.mcp-card').dataset.id));
+            });
+            content.querySelectorAll('[data-act="edit"]').forEach(btn => {
+                btn.addEventListener('click', () => startEdit(btn.closest('.mcp-card').dataset.id, servers));
+            });
+        }
+
+        function startEdit(id, servers) {
+            const s = servers.find(x => x.id === id);
+            if (!s) return;
+            document.getElementById('edit-id').value = s.id;
+            document.getElementById('form-title').textContent = '编辑 ' + s.name;
+            document.getElementById('f-name').value = s.name || '';
+            document.getElementById('f-transport').value = s.transport || 'http';
+            document.getElementById('f-url').value = s.url || '';
+            document.getElementById('f-command').value = s.command || '';
+            document.getElementById('f-args').value = (s.args || []).join('\n');
+            document.getElementById('f-headers').value = '';
+            document.getElementById('f-env').value = '';
+            document.getElementById('f-note').value = s.note || '';
+            document.getElementById('btn-cancel').style.display = '';
+            toggleTransport();
+            formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // headers/env 留空 = 保存时不改密钥；要更新密钥请粘贴完整 JSON
+        }
+
+        document.getElementById('btn-save').addEventListener('click', async () => {
+            const t = token();
+            if (!t) { showLogin(); return; }
+
+            const editId = document.getElementById('edit-id').value;
+            const name = document.getElementById('f-name').value.trim();
+            const transport = document.getElementById('f-transport').value;
+            const url = document.getElementById('f-url').value.trim();
+            const command = document.getElementById('f-command').value.trim();
+            const argsText = document.getElementById('f-args').value;
+            const args = argsText.split('\n').map(s => s.trim()).filter(Boolean);
+            const note = document.getElementById('f-note').value.trim();
+
+            let headers, env;
+            let headersProvided = false;
+            let envProvided = false;
+            try {
+                const hRaw = document.getElementById('f-headers').value.trim();
+                const eRaw = document.getElementById('f-env').value.trim();
+                if (hRaw) {
+                    headers = parseJsonObject(hRaw, 'headers');
+                    headersProvided = true;
+                } else {
+                    headers = {};
+                }
+                if (eRaw) {
+                    env = parseJsonObject(eRaw, 'env');
+                    envProvided = true;
+                } else {
+                    env = {};
+                }
+            } catch (e) {
+                alert(e.message);
+                return;
+            }
+
+            // 编辑时若框里仍是脱敏占位，视为「不改密钥」
+            const looksMasked = (obj) => Object.values(obj).some(v => String(v).includes('****') || String(v) === '********');
+            if (editId && headersProvided && looksMasked(headers)) {
+                headersProvided = false;
+            }
+            if (editId && envProvided && looksMasked(env)) {
+                envProvided = false;
+            }
+
+            const body = { name, transport, url, command, args, note };
+            if (!editId || headersProvided) body.headers = headers;
+            if (!editId || envProvided) body.env = env;
+            const btn = document.getElementById('btn-save');
+            btn.disabled = true;
+            btn.textContent = '保存中…';
+
+            try {
+                const res = await fetch(
+                    editId ? API_BASE + '/api/mcps/' + encodeURIComponent(editId) : API_BASE + '/api/mcps',
+                    {
+                        method: editId ? 'PUT' : 'POST',
+                        headers: {
+                            'Authorization': 'Bearer ' + t,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(body),
+                    }
+                );
+                if (res.status === 401) { showLogin(); return; }
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.detail || ('保存失败 HTTP ' + res.status));
+                    return;
+                }
+                resetForm();
+                await loadList();
+            } catch (e) {
+                alert('保存失败：无法连接服务器');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '保存';
+            }
+        });
+
+        async function delMcp(id) {
+            if (!confirm('确定删除这条托管 MCP？本地已写入的配置不会自动删除。')) return;
+            const t = token();
+            if (!t) { showLogin(); return; }
+            try {
+                const res = await fetch(API_BASE + '/api/mcps/' + encodeURIComponent(id), {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + t },
+                });
+                if (res.status === 401) { showLogin(); return; }
+                if (!res.ok && res.status !== 404) {
+                    alert('删除失败 HTTP ' + res.status);
+                    return;
+                }
+                await loadList();
+            } catch (e) {
+                alert('删除失败：无法连接服务器');
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if (typeof renderAuthNav === 'function') renderAuthNav();
+            toggleTransport();
+            loadList();
+        });
+    </script>
+</body>
+</html>

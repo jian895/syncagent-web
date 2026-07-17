@@ -144,8 +144,9 @@ function renderAuthNav() {
     const email = emailFromToken(token);
     nav.innerHTML =
         (email ? '<span class="nav-user" title="' + email + '">' + email + '</span>' : '') +
-        '<a href="/backups.html" class="nav-btn">我的备份</a>' +
-        '<a href="/setup.html" class="nav-btn nav-btn-ghost">安装命令</a>' +
+        '<a href="/mcps.html" class="nav-btn">MCP</a>' +
+        '<a href="/backups.html" class="nav-btn">备份</a>' +
+        '<a href="/setup.html" class="nav-btn nav-btn-ghost">安装</a>' +
         '<button type="button" class="nav-btn nav-btn-ghost" id="nav-logout">退出</button>';
 
     const btn = document.getElementById('nav-logout');
