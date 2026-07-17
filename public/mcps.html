@@ -74,6 +74,21 @@
         }
         .form-actions .primary:hover { background: #333; }
         .form-actions .primary:disabled { opacity: 0.4; cursor: not-allowed; }
+        details.advanced {
+            margin: 0.5rem 0 1rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 0.65rem 0.85rem;
+            background: var(--bg-secondary);
+        }
+        details.advanced summary {
+            cursor: pointer;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--fg-secondary);
+            user-select: none;
+        }
+        details.advanced[open] summary { margin-bottom: 0.35rem; }
         .hint-box {
             margin-top: 1.5rem; padding: 0.85rem 1rem; background: var(--bg-secondary);
             border-left: 2px solid var(--fg); border-radius: 0 var(--radius) var(--radius) 0;
@@ -110,57 +125,62 @@
             <div id="content"><div class="state-box">加载中…</div></div>
 
             <div class="form-card" id="form-card" style="display:none;">
-                <h3 id="form-title">添加 MCP 服务器</h3>
+                <h3 id="form-title">添加 MCP</h3>
                 <input type="hidden" id="edit-id" value="">
-                <div class="row-2">
-                    <div class="field">
-                        <label for="f-name">名称 name *</label>
-                        <input id="f-name" placeholder="zoho-books" autocomplete="off">
-                        <div class="help">字母数字 - _，写入本地时用作服务器标识</div>
-                    </div>
-                    <div class="field">
-                        <label for="f-transport">类型 transport *</label>
-                        <select id="f-transport">
-                            <option value="http">http（远程 URL）</option>
-                            <option value="stdio">stdio（本地命令）</option>
-                        </select>
-                    </div>
+
+                <div class="field">
+                    <label for="f-name">名称</label>
+                    <input id="f-name" placeholder="例如 zoho-books" autocomplete="off">
                 </div>
                 <div class="field" id="field-url">
-                    <label for="f-url">URL *</label>
+                    <label for="f-url">地址 URL</label>
                     <input id="f-url" placeholder="https://example.com/mcp" autocomplete="off">
                 </div>
-                <div class="field" id="field-command" style="display:none;">
-                    <label for="f-command">command *</label>
-                    <input id="f-command" placeholder="npx" autocomplete="off">
+                <div class="field" id="field-token">
+                    <label for="f-token">访问密钥（可选）</label>
+                    <input id="f-token" type="password" placeholder="Bearer sk-… 或直接粘贴 token" autocomplete="off">
+                    <div class="help">会写入 Authorization 请求头。编辑时留空表示不改原密钥。</div>
                 </div>
-                <div class="field" id="field-args" style="display:none;">
-                    <label for="f-args">args（每行一个）</label>
-                    <textarea id="f-args" placeholder="-y&#10;@modelcontextprotocol/server-xxx"></textarea>
-                </div>
-                <div class="field">
-                    <label for="f-headers">headers（JSON 对象，可含 Authorization）</label>
-                    <textarea id="f-headers" placeholder='{"Authorization": "Bearer sk-..."}'></textarea>
-                    <div class="help">新建可填密钥。编辑时留空表示不修改原密钥；要更新请粘贴完整 JSON 真值。</div>
-                </div>
-                <div class="field">
-                    <label for="f-env">env（JSON 对象）</label>
-                    <textarea id="f-env" placeholder='{"API_KEY": "..."}'></textarea>
-                </div>
-                <div class="field">
-                    <label for="f-note">备注</label>
-                    <input id="f-note" placeholder="可选" autocomplete="off">
-                </div>
+
+                <details class="advanced" id="advanced-box">
+                    <summary>高级选项（本地命令 / 额外 headers）</summary>
+                    <div class="field" style="margin-top:0.85rem;">
+                        <label for="f-transport">类型</label>
+                        <select id="f-transport">
+                            <option value="http">远程 HTTP</option>
+                            <option value="stdio">本地命令 stdio</option>
+                        </select>
+                    </div>
+                    <div class="field" id="field-command" style="display:none;">
+                        <label for="f-command">命令 command</label>
+                        <input id="f-command" placeholder="npx" autocomplete="off">
+                    </div>
+                    <div class="field" id="field-args" style="display:none;">
+                        <label for="f-args">参数（每行一个）</label>
+                        <textarea id="f-args" placeholder="-y&#10;@modelcontextprotocol/server-xxx"></textarea>
+                    </div>
+                    <div class="field">
+                        <label for="f-headers">额外 headers（JSON，可选）</label>
+                        <textarea id="f-headers" placeholder='{"X-Custom": "value"}'></textarea>
+                    </div>
+                    <div class="field">
+                        <label for="f-env">环境变量 env（JSON，可选）</label>
+                        <textarea id="f-env" placeholder='{"API_KEY": "..."}'></textarea>
+                    </div>
+                    <div class="field">
+                        <label for="f-note">备注</label>
+                        <input id="f-note" placeholder="可选" autocomplete="off">
+                    </div>
+                </details>
+
                 <div class="form-actions">
-                    <button type="button" id="btn-cancel" style="display:none;">取消编辑</button>
+                    <button type="button" id="btn-cancel" style="display:none;">取消</button>
                     <button type="button" class="primary" id="btn-save">保存</button>
                 </div>
             </div>
 
             <div class="hint-box" id="hint-box" style="display:none;">
-                添加完成后，在智能体里说：<br>
-                <code>把云端 MCP 同步到本地</code> 或 <code>调用 syncagent_pull_mcps(client_type=你的客户端)</code><br>
-                AI 会拉取完整配置（含密钥）并写入本机 MCP 文件。养成资产备份仍不包含这些密钥。
+                添加后，在智能体里说：<code>把云端 MCP 同步到本地</code>
             </div>
         </main>
 
@@ -227,8 +247,8 @@
             const editId = document.getElementById('edit-id');
             if (editId) editId.value = '';
             const title = document.getElementById('form-title');
-            if (title) title.textContent = '添加 MCP 服务器';
-            ['f-name','f-url','f-command','f-args','f-headers','f-env','f-note'].forEach(id => {
+            if (title) title.textContent = '添加 MCP';
+            ['f-name','f-url','f-token','f-command','f-args','f-headers','f-env','f-note'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
@@ -236,6 +256,8 @@
             if (nameEl) nameEl.disabled = false;
             const tr = document.getElementById('f-transport');
             if (tr) tr.value = 'http';
+            const adv = document.getElementById('advanced-box');
+            if (adv) adv.open = false;
             const cancel = document.getElementById('btn-cancel');
             if (cancel) cancel.style.display = 'none';
             toggleTransport();
@@ -340,12 +362,17 @@
             document.getElementById('f-name').value = s.name || '';
             document.getElementById('f-transport').value = s.transport || 'http';
             document.getElementById('f-url').value = s.url || '';
+            document.getElementById('f-token').value = '';
             document.getElementById('f-command').value = s.command || '';
             document.getElementById('f-args').value = (s.args || []).join('\n');
             document.getElementById('f-headers').value = '';
             document.getElementById('f-env').value = '';
             document.getElementById('f-note').value = s.note || '';
             document.getElementById('btn-cancel').style.display = '';
+            // 若是 stdio 或有 env，自动展开高级
+            const isStdio = (s.transport || 'http') === 'stdio';
+            const adv = document.getElementById('advanced-box');
+            if (adv) adv.open = isStdio;
             toggleTransport();
             formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
@@ -384,15 +411,38 @@
             if (!t) { showLogin(); return; }
 
             const editId = document.getElementById('edit-id').value;
-            const name = document.getElementById('f-name').value.trim();
-            const transport = document.getElementById('f-transport').value;
+            let name = document.getElementById('f-name').value.trim();
+            const transport = document.getElementById('f-transport').value || 'http';
             const url = document.getElementById('f-url').value.trim();
+            const tokenRaw = document.getElementById('f-token').value.trim();
             const command = document.getElementById('f-command').value.trim();
-            const argsText = document.getElementById('f-args').value;
-            const args = argsText.split('\n').map(s => s.trim()).filter(Boolean);
+            const args = document.getElementById('f-args').value.split('\n').map(s => s.trim()).filter(Boolean);
             const note = document.getElementById('f-note').value.trim();
 
-            let headers, env;
+            // 名称可空：从 URL 主机名生成
+            if (!name) {
+                try {
+                    const u = new URL(url);
+                    name = (u.hostname || 'mcp').replace(/\./g, '-').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32) || 'mcp';
+                } catch (_) {
+                    name = 'mcp';
+                }
+            }
+            if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+                alert('名称只能包含字母、数字、-、_');
+                return;
+            }
+            if (transport === 'http' && !url) {
+                alert('请填写 URL');
+                return;
+            }
+            if (transport === 'stdio' && !command) {
+                alert('本地命令类型请填写 command');
+                return;
+            }
+
+            let headers = {};
+            let env = {};
             let headersProvided = false;
             let envProvided = false;
             try {
@@ -401,18 +451,21 @@
                 if (hRaw) {
                     headers = parseJsonObject(hRaw, 'headers');
                     headersProvided = true;
-                } else {
-                    headers = {};
                 }
                 if (eRaw) {
                     env = parseJsonObject(eRaw, 'env');
                     envProvided = true;
-                } else {
-                    env = {};
                 }
             } catch (e) {
                 alert(e.message);
                 return;
+            }
+
+            // 主路径：简单 Token → Authorization
+            if (tokenRaw) {
+                const auth = /^bearer\s+/i.test(tokenRaw) ? tokenRaw : ('Bearer ' + tokenRaw);
+                headers = Object.assign({}, headers, { Authorization: auth });
+                headersProvided = true;
             }
 
             const looksMasked = (obj) => Object.values(obj).some(v => String(v).includes('****') || String(v) === '********');
@@ -422,6 +475,7 @@
             const body = { name, transport, url, command, args, note };
             if (!editId || headersProvided) body.headers = headers;
             if (!editId || envProvided) body.env = env;
+
             const btn = document.getElementById('btn-save');
             btn.disabled = true;
             btn.textContent = '保存中…';
